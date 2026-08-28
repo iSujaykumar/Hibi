@@ -7,6 +7,7 @@ import { titleName, TITLES } from "@/lib/game/achievements";
 import { ARCHETYPE_META, AVATAR_BLURBS, AVATAR_LABELS, STAT_LABELS, playDifficultyLabel } from "@/lib/i18n/catalog";
 import { FOCUS_CONFIG, isFocusId } from "@/lib/game/config";
 import { PlayerAvatar } from "@/components/player/avatar";
+import { ShareHunterCardButton } from "@/components/player/hunter-card";
 import { useAppStore } from "@/store/app-store";
 import type { AvatarId, StatKey } from "@/types/hibi";
 import { STAT_KEYS } from "@/types/hibi";
@@ -61,6 +62,9 @@ function ProfilePage() {
           {titleName(player.equippedTitle)} · {player.currentStreak} day streak · {state.achievements.length}{" "}
           achievements
         </p>
+        <div className="mt-4">
+          <ShareHunterCardButton player={player} />
+        </div>
       </SystemFrame>
 
       <SystemFrame label="Avatar">

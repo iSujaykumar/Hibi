@@ -4,10 +4,9 @@ import { PlayerHero } from "@/components/player/player-hero";
 import { QuestCard } from "@/components/quests/quest-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Kicker, SystemFrame } from "@/components/system/frame";
-import { greetingForHour } from "@/lib/game/dates";
-import { messageForDate } from "@/lib/game/messages";
 import { recommendations } from "@/lib/game/recommendations";
-import { xpRequired } from "@/lib/game/progression";
+import { xpRequired, nextRankRequirement } from "@/lib/game/progression";
+import { gateForRank, nextGate, seasonForDate } from "@/lib/game/gates";
 import {
   completionFor,
   dailyProgress,
@@ -27,37 +26,58 @@ function HomePage() {
   const state = useAppStore((s) => s.state);
   const complete = useAppStore((s) => s.complete);
   const recover = useAppStore((s) => s.recoverStreak);
+  const acceptWound = useAppStore((s) => s.acceptWound);
   const dismissReview = useAppStore((s) => s.dismissReview);
   if (!state) return null;
   const { player } = state;
   const today = localDateId();
   const hour = new Date().getHours();
-  const greet = greetingForHour(hour);
   const due = dueToday(state, today);
   const progress = dailyProgress(state, today);
   const recs = recommendations(state, today);
   const needed = xpRequired(player.level);
-  const remaining = Math.max(0, needed - player.xp);
+  const remainingXp = Math.max(0, needed - player.xp);
+  const remaining = Math.max(0, progress.total - progress.done);
+  const gate = gateForRank(player.rank);
+  const upcoming = nextGate(player.rank);
+  const rankNeed = nextRankRequirement(player.rank);
+  const season = seasonForDate(today);
+  const late = remaining > 0 && hour >= 20;
+  const clear = progress.total > 0 && remaining === 0;
+  const wounded = Boolean(player.pendingMissDate);
 
   return (
     <div className="space-y-5">
       <header className="enter-up">
-        <Kicker>
-          Good {greet}, player
-        </Kicker>
+        <Kicker>Daily briefing</Kicker>
         <h1 className="mt-1 font-display text-3xl">Day {player.dayCount}</h1>
-        <p className="mt-1 text-sm text-muted">{messageForDate(today)}</p>
+        <p className="mt-1 text-sm text-muted">
+          {gate.name} · {season.name}
+        </p>
+        <p className="mt-2 text-sm text-fg">
+          {progress.total === 0
+            ? "No protocol issued. Generate one or create a quest."
+            : clear
+              ? "Protocol clear. The board is quiet."
+              : late
+                ? `${remaining} quest${remaining === 1 ? "" : "s"} still open. Penalty window.`
+                : `${progress.total} quests issued · ${remaining} remaining.`}
+        </p>
       </header>
 
-      {player.pendingMissDate && player.streakShields > 0 && state.settings.streakProtection ? (
-        <SystemFrame label="Quest incomplete">
-          <p className="text-sm text-muted">
-            A day was missed. Recovery is available. Reset and continue.
+      {wounded ? (
+        <SystemFrame label="Streak wounded">
+          <p className="font-display text-2xl text-danger">Rank at risk</p>
+          <p className="mt-2 text-sm text-muted">
+            A protocol day was missed. Streak of {player.currentStreak} will collapse unless recovered.
+            {rankNeed ? ` Next rank ${rankNeed.rank} still needs level ${rankNeed.level} and ${rankNeed.achievements} achievements.` : ""}
           </p>
           <div className="mt-4 flex gap-2">
-            <Button onClick={() => void recover()}>Recover</Button>
-            <Button variant="ghost" onClick={() => void useAppStore.getState().updatePlayer({ pendingMissDate: null })}>
-              Continue
+            {player.streakShields > 0 && state.settings.streakProtection ? (
+              <Button onClick={() => void recover()}>Use shield ({player.streakShields})</Button>
+            ) : null}
+            <Button variant="ghost" onClick={() => void acceptWound()}>
+              Accept the wound
             </Button>
           </div>
         </SystemFrame>
@@ -79,24 +99,18 @@ function HomePage() {
       <PlayerHero player={player} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatChip label="Today" value={`${progress.done} / ${progress.total} quests`} />
-        <StatChip
-          label="Streak"
-          value={`${player.currentStreak} days`}
-          icon
-        />
-        <StatChip label="Next level" value={`${formatNumber(remaining)} XP away`} />
+        <StatChip label="Board" value={`${progress.done} / ${progress.total} clear`} />
+        <StatChip label="Streak" value={`${player.currentStreak} days`} icon />
+        <StatChip label="Next level" value={`${formatNumber(remainingXp)} XP`} />
         <StatChip label="Today XP" value={`+${formatNumber(xpToday(state, today))}`} />
-        {player.comboCount > 1 ? (
-          <StatChip label="Combo" value={`×${player.comboCount}`} />
-        ) : null}
+        {player.comboCount > 1 ? <StatChip label="Combo" value={`×${player.comboCount}`} /> : null}
       </div>
 
       <section>
         <div className="mb-3 flex items-end justify-between">
           <div>
-            <Kicker>Today's quests</Kicker>
-            <h2 className="font-display text-xl">Active board</h2>
+            <Kicker>Mission board</Kicker>
+            <h2 className="font-display text-xl">{clear ? "Cleared" : "Active protocol"}</h2>
           </div>
           <Button asChild variant="secondary" size="sm">
             <Link to="/habits/new">
@@ -143,10 +157,30 @@ function HomePage() {
         )}
         {progress.total > 0 ? (
           <p className="mt-4 text-center text-xs tracking-[0.16em] text-muted uppercase">
-            Daily bonus · complete all · +150 XP · {progress.done}/{progress.total}
+            {clear
+              ? "Daily bonus armed · +150 XP"
+              : `Daily bonus · complete all · +150 XP · ${progress.done}/${progress.total}`}
           </p>
         ) : null}
       </section>
+
+      {upcoming ? (
+        <SystemFrame label="Next gate">
+          <p className="font-display text-xl">{upcoming.name}</p>
+          <p className="mt-2 text-sm text-muted">
+            Rank {upcoming.rank}
+            {rankNeed ? ` · level ${rankNeed.level} · ${rankNeed.achievements} achievements` : null}
+          </p>
+          <p className="mt-2 text-xs text-subtle">{upcoming.blurb}</p>
+        </SystemFrame>
+      ) : (
+        <SystemFrame label="Afterlight">
+          <p className="font-display text-xl">{season.name}</p>
+          <p className="mt-2 text-sm text-muted">
+            Peak rank held. Seasons still rotate. Keep the protocol.
+          </p>
+        </SystemFrame>
+      )}
 
       {recs.length > 0 ? (
         <SystemFrame label="System recommendation">

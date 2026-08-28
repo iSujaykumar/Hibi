@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createPlayer, DEFAULT_SETTINGS } from "./defaults.ts";
-import { completeHabit, dailyTick } from "./engine.ts";
+import { completeHabit, dailyTick, acceptStreakWound } from "./engine.ts";
 import { parseBackup, serializeBackup } from "./backup.ts";
 import { localDateId, shiftLocalDate } from "./dates.ts";
 import { progressFromTotalXp, rankFor, xpRequired, computeXpAward } from "./progression.ts";
 import { applyStreakOnComplete, habitStreak } from "./streaks.ts";
+import { gateForRank, titlesUpToRank, seasonForDate } from "./gates.ts";
 import type { GameState, Habit } from "../../types/hibi.ts";
 
 function habit(partial: Partial<Habit> = {}): Habit {
@@ -218,5 +219,30 @@ describe("weekly quests", () => {
     const again = completeHabit(d2.state, "w1", { date: "2026-08-04" });
     assert.ok(again.events.some((e) => e.type === "already_complete"));
     assert.equal(again.state.player.totalXp, xp);
+  });
+});
+
+describe("streak wound", () => {
+  it("zeros the streak when the wound is accepted", () => {
+    const s = state({
+      player: {
+        ...createPlayer({ name: "Valkyrie", onboarded: true }),
+        currentStreak: 6,
+        pendingMissDate: "2026-08-27",
+        lastStreakDate: "2026-08-26",
+      },
+    });
+    const next = acceptStreakWound(s);
+    assert.equal(next.player.currentStreak, 0);
+    assert.equal(next.player.pendingMissDate, null);
+  });
+});
+
+describe("gates", () => {
+  it("maps ranks to gate titles", () => {
+    assert.equal(gateForRank("C").name, "Inner Gate");
+    assert.ok(titlesUpToRank("C").includes("gate_c"));
+    assert.ok(titlesUpToRank("C").includes("gate_e"));
+    assert.ok(seasonForDate("2026-08-28").name.endsWith("Season"));
   });
 });

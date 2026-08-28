@@ -14,6 +14,7 @@ import {
 import { ARCHETYPE_CONFIG, canonicalPlayDifficulty, canonicalArchetype } from "./config.ts";
 import { DEFAULT_SETTINGS } from "./defaults.ts";
 import { clampQuestXp, clampStatReward, MAX_QUEST_XP, maxTotalXp, progressFromTotalXp, xpRequired } from "./progression.ts";
+import { titlesUpToRank } from "./gates.ts";
 
 export function normalizeArchetype(value: unknown): Archetype {
   return canonicalArchetype(value);
@@ -83,13 +84,20 @@ export function migratePlayer(raw: Partial<Player> & { name?: string }): Player 
   }
   const totalXp = Math.min(maxTotalXp(), Math.max(0, Math.floor(Number(raw.totalXp) || 0)));
   const progressed = progressFromTotalXp(totalXp);
+  const rank = raw.rank ?? "E";
+  const unlockedTitles = Array.from(
+    new Set([
+      ...(Array.isArray(raw.unlockedTitles) ? raw.unlockedTitles : ["beginner"]),
+      ...titlesUpToRank(rank),
+    ]),
+  );
   return {
     id: raw.id ?? "local",
     name: (raw.name ?? "Player").trim() || "Player",
     level: progressed.level,
     xp: progressed.xp,
     totalXp,
-    rank: raw.rank ?? "E",
+    rank,
     archetype,
     playDifficulty: normalizePlayDifficulty(raw.playDifficulty),
     focuses: Array.isArray(raw.focuses) && raw.focuses.length > 0 ? raw.focuses : ["growth"],
@@ -101,7 +109,7 @@ export function migratePlayer(raw: Partial<Player> & { name?: string }): Player 
     streakShields: raw.streakShields ?? 1,
     pendingMissDate: raw.pendingMissDate ?? null,
     equippedTitle: raw.equippedTitle ?? "beginner",
-    unlockedTitles: Array.isArray(raw.unlockedTitles) ? raw.unlockedTitles : ["beginner"],
+    unlockedTitles,
     avatar: raw.avatar ?? ARCHETYPE_CONFIG[archetype].avatar,
     avatarFrame: raw.avatarFrame ?? "none",
     createdAt: raw.createdAt ?? new Date().toISOString(),

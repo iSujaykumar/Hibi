@@ -215,11 +215,26 @@ html[data-theme="light"] {
 .stagger-4 { animation-delay: 160ms; }
 .stagger-5 { animation-delay: 200ms; }
 
+.rank-pulse {
+  box-shadow: 0 0 22px color-mix(in oklab, var(--hibi-legendary) 55%, transparent);
+  animation: rank-pulse 2.4s var(--ease-smooth-out) infinite;
+}
+@keyframes rank-pulse {
+  0%, 100% { box-shadow: 0 0 16px color-mix(in oklab, var(--hibi-legendary) 35%, transparent); }
+  50% { box-shadow: 0 0 32px color-mix(in oklab, var(--hibi-legendary) 70%, transparent); }
+}
+
+.system-window {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--hibi-accent) 8%, var(--hibi-card)), var(--hibi-card));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .particle,
   .xp-float,
   .enter-up,
-  .scanlines {
+  .scanlines,
+  .rank-pulse {
     animation: none !important;
   }
 }

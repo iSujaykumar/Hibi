@@ -7,11 +7,13 @@ import { ARCHETYPE_META, playDifficultyLabel } from "@/lib/i18n/catalog";
 import { FOCUS_CONFIG, isFocusId } from "@/lib/game/config";
 import { titleName } from "@/lib/game/achievements";
 import { nextRankRequirement, xpRequired } from "@/lib/game/progression";
+import { gateForRank } from "@/lib/game/gates";
 import { formatNumber } from "@/lib/utils";
 
 export function PlayerHero({ player }: { player: Player }) {
   const needed = xpRequired(player.level);
   const next = nextRankRequirement(player.rank);
+  const gate = gateForRank(player.rank);
   const focusId = player.focuses[0];
   const focusName = focusId && isFocusId(focusId) ? FOCUS_CONFIG[focusId].name : "Growth";
   const difficulty = playDifficultyLabel(player.playDifficulty);
@@ -22,7 +24,7 @@ export function PlayerHero({ player }: { player: Player }) {
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-2xl leading-tight">{player.name}</p>
           <p className="mt-1 text-xs tracking-[0.16em] text-muted uppercase">
-            {titleName(player.equippedTitle)} · Rank {player.rank} · Level {player.level}
+            {titleName(player.equippedTitle)} · Rank {player.rank} · {gate.name} · Level {player.level}
           </p>
           <p className="mt-1 truncate text-xs text-subtle">
             {ARCHETYPE_META[player.archetype]?.name ?? "Adaptive"} · {focusName} · {difficulty.name}

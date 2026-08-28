@@ -9,6 +9,8 @@ import { formatNumber } from "@/lib/utils";
 import { mostProductiveDay, weeklyCounts } from "@/lib/selectors";
 import { useAppStore } from "@/store/app-store";
 import { STAT_KEYS } from "@/types/hibi";
+import { GATES, gateForRank, nextGate, seasonForDate } from "@/lib/game/gates";
+import { nextRankRequirement } from "@/lib/game/progression";
 
 export const Route = createFileRoute("/_app/progress")({ component: ProgressPage });
 
@@ -19,6 +21,10 @@ function ProgressPage() {
   const { player } = state;
   const completed = state.completions.filter((c) => c.completed);
   const week = weeklyCounts(state);
+  const gate = gateForRank(player.rank);
+  const upcoming = nextGate(player.rank);
+  const rankNeed = nextRankRequirement(player.rank);
+  const season = seasonForDate(localDateId());
   const byCat = useMemo(() => {
     const map = new Map<string, number>();
     for (const c of completed) {
@@ -39,6 +45,33 @@ function ProgressPage() {
         <Kicker>Analytics</Kicker>
         <h1 className="font-display text-3xl">Progress</h1>
       </header>
+
+      <SystemFrame label="Gates">
+        <p className="font-display text-2xl">{gate.name}</p>
+        <p className="mt-1 text-sm text-muted">
+          Rank {player.rank} · {season.name}
+        </p>
+        <ol className="mt-4 flex flex-wrap gap-2">
+          {GATES.map((g) => (
+            <li
+              key={g.rank}
+              className={`rounded-md px-2 py-1 font-display text-[11px] tracking-[0.14em] uppercase ${
+                g.rank === player.rank ? "bg-accent text-accent-fg" : "bg-surface text-muted"
+              }`}
+            >
+              {g.rank}
+            </li>
+          ))}
+        </ol>
+        {upcoming ? (
+          <p className="mt-3 text-sm text-subtle">
+            Next: {upcoming.name} (Rank {upcoming.rank}
+            {rankNeed ? ` · lv ${rankNeed.level} · ${rankNeed.achievements} achievements` : ""})
+          </p>
+        ) : (
+          <p className="mt-3 text-sm text-subtle">Peak gate. Seasons still rotate.</p>
+        )}
+      </SystemFrame>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile k="Level" v={String(player.level)} />

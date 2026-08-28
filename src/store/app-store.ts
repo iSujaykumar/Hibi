@@ -24,6 +24,7 @@ import {
   upsertHabit,
   upsertRoutine,
   useStreakShield,
+  acceptStreakWound,
 } from "@/lib/game/engine";
 import { clampQuestXp, difficultyXpBase } from "@/lib/game/progression";
 import { generateProtocol } from "@/lib/game/protocol";
@@ -32,6 +33,18 @@ import { uid } from "@/lib/utils";
 import { playQuestSound, playLevelSound } from "@/services/sound";
 
 type Overlay =
+  | {
+      kind: "quest";
+      name: string;
+      xp: number;
+      stats: Partial<PlayerStats>;
+      combo: number;
+      levelFrom?: number;
+      levelTo?: number;
+      rankFrom?: string;
+      rankTo?: string;
+      achievement?: { name: string; rarity: string };
+    }
   | { kind: "level"; from: number; to: number; gains: Partial<PlayerStats> }
   | { kind: "rank"; from: string; to: string }
   | { kind: "achievement"; name: string; rarity: string }
@@ -54,6 +67,7 @@ type AppStore = {
   deleteHabit: (habitId: string) => Promise<void>;
   allocate: (key: StatKey) => Promise<void>;
   recoverStreak: () => Promise<void>;
+  acceptWound: () => Promise<void>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   updatePlayer: (patch: Partial<Player>) => Promise<void>;
   setAvatar: (avatar: AvatarId) => Promise<void>;
@@ -72,9 +86,27 @@ type AppStore = {
 const emptyEvents: EngineEvent[] = [];
 
 function pickOverlay(events: EngineEvent[]): Overlay {
+  const quest = events.find((e) => e.type === "quest_complete");
   const rank = events.find((e) => e.type === "rank_up");
-  if (rank && rank.type === "rank_up") return { kind: "rank", from: rank.from, to: rank.to };
   const levels = events.filter((e) => e.type === "level_up");
+  const ach = events.find((e) => e.type === "achievement");
+  if (quest && quest.type === "quest_complete") {
+    const first = levels[0];
+    const last = levels[levels.length - 1];
+    return {
+      kind: "quest",
+      name: quest.name,
+      xp: quest.xp,
+      stats: quest.stats,
+      combo: quest.combo,
+      levelFrom: first && first.type === "level_up" ? first.from : undefined,
+      levelTo: last && last.type === "level_up" ? last.to : undefined,
+      rankFrom: rank && rank.type === "rank_up" ? rank.from : undefined,
+      rankTo: rank && rank.type === "rank_up" ? rank.to : undefined,
+      achievement: ach && ach.type === "achievement" ? { name: ach.name, rarity: ach.rarity } : undefined,
+    };
+  }
+  if (rank && rank.type === "rank_up") return { kind: "rank", from: rank.from, to: rank.to };
   if (levels.length > 0) {
     const first = levels[0];
     const last = levels[levels.length - 1];
@@ -90,7 +122,6 @@ function pickOverlay(events: EngineEvent[]): Overlay {
       return { kind: "level", from: first.from, to: last.to, gains };
     }
   }
-  const ach = events.find((e) => e.type === "achievement");
   if (ach && ach.type === "achievement") {
     return { kind: "achievement", name: ach.name, rarity: ach.rarity };
   }
@@ -238,6 +269,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await saveState(next);
   },
 
+  acceptWound: async () => {
+    const current = get().state;
+    if (!current) return;
+    const next = acceptStreakWound(current);
+    set({ state: next });
+    await saveState(next);
+  },
+
   updateSettings: async (patch) => {
     const current = get().state;
     if (!current) return;
@@ -278,7 +317,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await saveState(next);
   },
 
-  dismissOverlay: () => set({ overlay: null }),
+  dismissOverlay: () => set({ overlay: null, lastEvents: emptyEvents }),
   clearLastEvents: () => set({ lastEvents: emptyEvents }),
 
   dismissReview: async () => {

@@ -1,5 +1,6 @@
 import type { GameState, Rarity } from "../../types/hibi.ts";
 import { STAT_KEYS } from "../../types/hibi.ts";
+import { GATES } from "./gates.ts";
 
 export type AchievementDef = {
   id: string;
@@ -242,6 +243,7 @@ export const TITLES: { id: string; name: string }[] = [
   { id: "the_pathfinder", name: "The Pathfinder" },
   { id: "the_relentless", name: "The Relentless" },
   { id: "the_strategist", name: "The Strategist" },
+  ...GATES.map((g) => ({ id: g.titleId, name: g.title })),
 ];
 
 export function titleName(id: string | null | undefined): string {

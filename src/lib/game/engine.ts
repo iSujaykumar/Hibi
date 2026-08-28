@@ -25,6 +25,7 @@ import {
   rankFor,
 } from "./progression.ts";
 import { applyStreakOnComplete, shieldsEarnedForStreak } from "./streaks.ts";
+import { gateForRank, titlesUpToRank } from "./gates.ts";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -68,11 +69,23 @@ function addXp(player: Player, amount: number, events: EngineEvent[]): Player {
 
 function applyRank(state: GameState, events: EngineEvent[]): GameState {
   const next = rankFor(state.player.level, state.achievements.length);
-  if (next !== state.player.rank) {
-    events.push({ type: "rank_up", from: state.player.rank, to: next });
-    return { ...state, player: { ...state.player, rank: next, updatedAt: nowIso() } };
+  if (next === state.player.rank) return state;
+  const gate = gateForRank(next);
+  const unlockedTitles = Array.from(new Set([...state.player.unlockedTitles, ...titlesUpToRank(next)]));
+  events.push({ type: "rank_up", from: state.player.rank, to: next });
+  if (!state.player.unlockedTitles.includes(gate.titleId)) {
+    events.push({ type: "title_unlocked", id: gate.titleId, name: gate.title });
   }
-  return state;
+  return {
+    ...state,
+    player: {
+      ...state.player,
+      rank: next,
+      unlockedTitles,
+      updatedAt: nowIso(),
+    },
+    activity: [logEvent("rank", `Rank ${next}`, gate.name), ...state.activity].slice(0, 200),
+  };
 }
 
 function grantAchievements(state: GameState, events: EngineEvent[]): GameState {
@@ -461,6 +474,29 @@ export function useStreakShield(state: GameState, today = localDateId()): GameSt
       pendingMissDate: null,
       updatedAt: nowIso(),
     },
+    activity: [
+      logEvent("system", "Streak recovered", "A shield held the chain."),
+      ...state.activity,
+    ].slice(0, 200),
+  };
+}
+
+export function acceptStreakWound(state: GameState): GameState {
+  if (!state.player.pendingMissDate) return state;
+  const lost = state.player.currentStreak;
+  return {
+    ...state,
+    player: {
+      ...state.player,
+      currentStreak: 0,
+      pendingMissDate: null,
+      lastStreakDate: null,
+      updatedAt: nowIso(),
+    },
+    activity: [
+      logEvent("system", "Streak wounded", lost ? `Chain of ${lost} days surrendered.` : "A protocol day was surrendered."),
+      ...state.activity,
+    ].slice(0, 200),
   };
 }
 
