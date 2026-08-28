@@ -5,7 +5,7 @@ export type QuestKind = "daily" | "weekly" | "mission" | "challenge" | "boss" | 
 export type Priority = "low" | "medium" | "high" | "critical";
 export type RankId = "E" | "D" | "C" | "B" | "A" | "S" | "SS" | "SSS" | "EX";
 
-/** Canonical archetypes. Legacy mage/assassin/ranger are mapped on load. */
+// old saves used mage/assassin/ranger — migrate.ts maps them
 export type Archetype =
   | "warrior"
   | "scholar"
@@ -17,7 +17,7 @@ export type Archetype =
 
 export type LegacyArchetype = "mage" | "assassin" | "ranger";
 
-/** Canonical play difficulties. casual/normal/hard remain as stored aliases. */
+// same deal: casual/normal/hard still show up in old blobs
 export type PlayDifficulty =
   | "initiate"
   | "adventurer"
@@ -74,7 +74,7 @@ export type StatKey =
 
 export type PlayerStats = Record<StatKey, number>;
 
-/** Stats shown in the UI. Legacy keys remain on the player for migration. */
+// vitality/discipline/consistency are legacy aliases, still stored
 export const STAT_KEYS: StatKey[] = [
   "strength",
   "willpower",

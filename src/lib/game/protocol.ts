@@ -213,10 +213,7 @@ export function swapTemplate(current: QuestTemplate, input: ProtocolInput, exclu
   return candidates[seed % candidates.length] ?? current;
 }
 
-/**
- * Adaptive hint — used by recommendations, not auto-applied.
- * Repeated success nudges up; repeated misses nudge toward a lighter load.
- */
+// used by recommendations, not auto-applied
 export function adaptiveHint(opts: {
   completionRate14: number;
   current: CanonicalPlayDifficulty;

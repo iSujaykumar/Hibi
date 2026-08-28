@@ -1,6 +1,9 @@
 {
   "name": "hibi",
   "private": true,
+  "description": "Local-first habit RPG. No account.",
+  "author": "iSujaykumar",
+  "license": "MIT",
   "sideEffects": false,
   "type": "module",
   "overrides": {

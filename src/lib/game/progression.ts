@@ -2,7 +2,6 @@ import type { Archetype, PlayDifficulty, PlayerStats, RankId, StatKey } from "..
 import { ALL_STAT_KEYS, STAT_KEYS } from "../../types/hibi.ts";
 import { ARCHETYPE_CONFIG, canonicalPlayDifficulty } from "./config.ts";
 
-/** XP needed to leave `level` and reach the next. */
 export const MAX_LEVEL = 400;
 export const MAX_QUEST_XP = 500;
 export const MAX_STAT_REWARD = 5;

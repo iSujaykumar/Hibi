@@ -7,10 +7,7 @@ export type StreakUpdate = {
   usedShield: boolean;
 };
 
-/**
- * Apply a completion on `date` to the player streak.
- * A shield, if available and a single day was missed, preserves the chain.
- */
+// gap of 1 day = continue; gap of 2 + a shield = continue; otherwise reset
 export function applyStreakOnComplete(opts: {
   lastStreakDate: string | null;
   currentStreak: number;

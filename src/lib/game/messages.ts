@@ -24,6 +24,9 @@ export const SYSTEM_MESSAGES = [
   "Protect the morning.",
   "Close the day on purpose.",
   "You are the protagonist of this system.",
+  "If it's on the board, do it.",
+  "Don't wait for motivation.",
+  "Same quest tomorrow. That's the point.",
 ];
 
 export function messageForDate(dateId: string): string {

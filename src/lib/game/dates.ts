@@ -1,4 +1,4 @@
-/** Local calendar date as YYYY-MM-DD. Never use UTC date slicing. */
+// local YYYY-MM-DD — don't toISOString().slice(), that's UTC
 export function localDateId(d: Date = new Date()): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");

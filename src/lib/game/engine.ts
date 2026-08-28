@@ -90,7 +90,7 @@ function applyRank(state: GameState, events: EngineEvent[]): GameState {
 
 function grantAchievements(state: GameState, events: EngineEvent[]): GameState {
   let current = state;
-  // Loop so achievements that depend on other unlocks can resolve in one tick.
+  // can unlock more than one (e.g. first blood → something that needed an achievement count)
   for (let i = 0; i < 4; i += 1) {
     const unlocked = evaluateAchievements(current);
     if (unlocked.length === 0) break;
