@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { useAppStore } from "@/store/app-store";
 import { ProgressionOverlays, XpToasts } from "@/components/overlays";
-import { HibiMark } from "@/components/brand/logo";
+import { GateBackdrop } from "@/components/brand/gate-splash";
 import { scheduleReminders } from "@/services/notifications";
 import { localDateId } from "@/lib/game/dates";
 
@@ -38,11 +38,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   if (!hydrated) {
     return (
-      <div className="grid min-h-dvh place-items-center bg-bg text-fg">
-        <div className="enter-up flex flex-col items-center gap-4">
-          <HibiMark className="size-14" />
-          <p className="font-display text-xs tracking-[0.28em] text-muted uppercase">System online</p>
-        </div>
+      <div className="relative isolate min-h-dvh overflow-hidden bg-black">
+        <GateBackdrop overlay={false} />
       </div>
     );
   }
