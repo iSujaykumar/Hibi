@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useAppStore } from "@/store/app-store";
 import { Button } from "@/components/ui/button";
 import { STAT_LABELS } from "@/lib/i18n/catalog";
@@ -66,10 +67,25 @@ export function ProgressionOverlays() {
 
 export function XpToasts() {
   const events = useAppStore((s) => s.lastEvents);
+  const clearLastEvents = useAppStore((s) => s.clearLastEvents);
   const quest = events.find((e) => e.type === "quest_complete");
+  const questKey =
+    quest && quest.type === "quest_complete" ? `${quest.habitId}:${quest.xp}:${quest.combo}` : "";
+
+  useEffect(() => {
+    if (!questKey) return;
+    const timer = window.setTimeout(() => clearLastEvents(), 1400);
+    return () => window.clearTimeout(timer);
+  }, [questKey, clearLastEvents]);
+
   if (!quest || quest.type !== "quest_complete") return null;
   return (
-    <div className="xp-float pointer-events-none fixed top-24 left-1/2 z-40 -translate-x-1/2 font-display text-sm tracking-wide text-accent">
+    <div
+      key={questKey}
+      className="xp-float pointer-events-none fixed top-20 left-1/2 z-40 -translate-x-1/2 rounded-full border border-accent/30 bg-bg/90 px-4 py-2 font-display text-sm tracking-wide text-accent shadow-lg"
+      role="status"
+      aria-live="polite"
+    >
       Quest complete · +{quest.xp} XP
     </div>
   );

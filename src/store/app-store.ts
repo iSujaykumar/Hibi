@@ -61,6 +61,7 @@ type AppStore = {
   saveRoutine: (routine: Routine) => Promise<void>;
   saveBoss: (boss: Boss) => Promise<void>;
   dismissOverlay: () => void;
+  clearLastEvents: () => void;
   dismissReview: () => Promise<void>;
   exportJson: () => string | null;
   importJson: (raw: unknown, mode: "replace" | "merge") => Promise<string | null>;
@@ -278,6 +279,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   dismissOverlay: () => set({ overlay: null }),
+  clearLastEvents: () => set({ lastEvents: emptyEvents }),
 
   dismissReview: async () => {
     const current = get().state;
