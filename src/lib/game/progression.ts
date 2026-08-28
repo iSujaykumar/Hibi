@@ -3,6 +3,25 @@ import { ALL_STAT_KEYS, STAT_KEYS } from "../../types/hibi.ts";
 import { ARCHETYPE_CONFIG, canonicalPlayDifficulty } from "./config.ts";
 
 /** XP needed to leave `level` and reach the next. */
+export const MAX_LEVEL = 400;
+export const MAX_QUEST_XP = 500;
+export const MAX_STAT_REWARD = 5;
+export const MAX_XP_AWARD = 1000;
+
+export function clampInt(n: unknown, min: number, max: number, fallback = min): number {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(v)));
+}
+
+export function clampQuestXp(n: unknown): number {
+  return clampInt(n, 1, MAX_QUEST_XP, 20);
+}
+
+export function clampStatReward(n: unknown): number {
+  return clampInt(n, 0, MAX_STAT_REWARD, 0);
+}
+
 export function xpRequired(level: number): number {
   const lvl = Math.max(1, Math.floor(level));
   return Math.round(100 * Math.pow(lvl, 1.18));
@@ -19,16 +38,21 @@ export function progressFromTotalXp(totalXp: number): {
   xp: number;
   needed: number;
 } {
-  const xp = Math.max(0, Math.floor(totalXp));
+  const xp = Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(Number(totalXp) || 0)));
   let level = 1;
   let remaining = xp;
-  while (level < 400) {
+  while (level < MAX_LEVEL) {
     const need = xpRequired(level);
     if (remaining < need) return { level, xp: remaining, needed: need };
     remaining -= need;
     level += 1;
   }
-  return { level, xp: remaining, needed: xpRequired(level) };
+  const need = xpRequired(level);
+  return { level, xp: Math.min(remaining, need), needed: need };
+}
+
+export function maxTotalXp(): number {
+  return totalXpToReach(MAX_LEVEL) + xpRequired(MAX_LEVEL);
 }
 
 export const RANK_ORDER: RankId[] = ["E", "D", "C", "B", "A", "S", "SS", "SSS", "EX"];
@@ -111,9 +135,10 @@ export function computeXpAward(opts: {
   streak: number;
   combo: number;
 }): number {
+  const base = clampQuestXp(opts.base);
   const bonus = Math.min(0.4, streakBonus(opts.streak) + comboBonus(opts.combo));
-  const raw = opts.base * playDifficultyMultiplier(opts.playDifficulty) * (1 + bonus);
-  return Math.max(1, Math.round(raw));
+  const raw = base * playDifficultyMultiplier(opts.playDifficulty) * (1 + bonus);
+  return clampInt(Math.round(raw), 1, MAX_XP_AWARD, 1);
 }
 
 export function mergeStats(base: PlayerStats, delta: Partial<PlayerStats>): PlayerStats {

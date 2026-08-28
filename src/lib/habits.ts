@@ -1,6 +1,6 @@
 import type { Habit } from "../types/hibi.ts";
 import { localDateId } from "./game/dates.ts";
-import { difficultyXpBase } from "./game/progression.ts";
+import { clampQuestXp, clampStatReward, difficultyXpBase } from "./game/progression.ts";
 import { uid } from "./utils.ts";
 
 export function makeHabit(partial: Partial<Habit> & { name: string }): Habit {
@@ -17,10 +17,12 @@ export function makeHabit(partial: Partial<Habit> & { name: string }): Habit {
     category: partial.category ?? "custom",
     difficulty,
     frequency: partial.frequency ?? "daily",
-    target: partial.target ?? 1,
+    target: Math.max(1, Math.floor(Number(partial.target) || 1)),
     unit: partial.unit ?? "",
-    xpReward: partial.xpReward ?? difficultyXpBase(difficulty),
-    statRewards: partial.statRewards ?? {},
+    xpReward: clampQuestXp(partial.xpReward ?? difficultyXpBase(difficulty)),
+    statRewards: Object.fromEntries(
+      Object.entries(partial.statRewards ?? {}).map(([k, v]) => [k, clampStatReward(v)]),
+    ),
     priority: partial.priority ?? "medium",
     color: partial.color ?? "cyan",
     reminder: partial.reminder ?? null,

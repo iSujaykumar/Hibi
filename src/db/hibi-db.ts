@@ -104,7 +104,15 @@ export async function loadState(): Promise<GameState | null> {
       settings,
       lastReview: (reviewRow?.value as DailyReview | null | undefined) ?? null,
     });
-    if (assembled && needsMigration({ ...assembled, schemaVersion: typeof schemaRow?.value === "number" ? schemaRow.value : 1 })) {
+    if (
+      assembled &&
+      needsMigration({
+        ...assembled,
+        schemaVersion: typeof schemaRow?.value === "number" ? schemaRow.value : 1,
+        player,
+        habits,
+      })
+    ) {
       memory = assembled;
       await saveState(assembled);
       return structuredClone(assembled);

@@ -13,6 +13,7 @@ import {
 } from "../../types/hibi.ts";
 import { ARCHETYPE_CONFIG, canonicalPlayDifficulty, canonicalArchetype } from "./config.ts";
 import { DEFAULT_SETTINGS } from "./defaults.ts";
+import { clampQuestXp, clampStatReward, MAX_QUEST_XP, maxTotalXp, progressFromTotalXp, xpRequired } from "./progression.ts";
 
 export function normalizeArchetype(value: unknown): Archetype {
   return canonicalArchetype(value);
@@ -29,7 +30,7 @@ export function normalizeStats(raw: unknown): PlayerStats {
   const stats: PlayerStats = { ...EMPTY_STATS };
   for (const key of ALL_STAT_KEYS) {
     const n = Number(src[key]);
-    if (Number.isFinite(n) && n >= 0) stats[key] = n;
+    if (Number.isFinite(n) && n >= 0) stats[key] = Math.min(999, Math.floor(n));
   }
   const vitality = Number(src.vitality);
   const discipline = Number(src.discipline);
@@ -50,10 +51,14 @@ export function normalizeStats(raw: unknown): PlayerStats {
 
 export function normalizeStatRewards(delta: Partial<PlayerStats> | undefined): Partial<PlayerStats> {
   if (!delta) return {};
-  const out: Partial<PlayerStats> = { ...delta };
-  if (delta.vitality) out.energy = (out.energy ?? 0) + delta.vitality;
-  if (delta.discipline) out.willpower = (out.willpower ?? 0) + delta.discipline;
-  if (delta.consistency) out.willpower = (out.willpower ?? 0) + delta.consistency;
+  const out: Partial<PlayerStats> = {};
+  for (const key of ALL_STAT_KEYS) {
+    const n = clampStatReward(delta[key]);
+    if (n > 0) out[key] = n;
+  }
+  if (delta.vitality) out.energy = (out.energy ?? 0) + clampStatReward(delta.vitality);
+  if (delta.discipline) out.willpower = (out.willpower ?? 0) + clampStatReward(delta.discipline);
+  if (delta.consistency) out.willpower = (out.willpower ?? 0) + clampStatReward(delta.consistency);
   return out;
 }
 
@@ -76,12 +81,14 @@ export function migratePlayer(raw: Partial<Player> & { name?: string }): Player 
       stats[key] = Math.max(stats[key], 1 + v);
     }
   }
+  const totalXp = Math.min(maxTotalXp(), Math.max(0, Math.floor(Number(raw.totalXp) || 0)));
+  const progressed = progressFromTotalXp(totalXp);
   return {
     id: raw.id ?? "local",
     name: (raw.name ?? "Player").trim() || "Player",
-    level: raw.level ?? 1,
-    xp: raw.xp ?? 0,
-    totalXp: raw.totalXp ?? 0,
+    level: progressed.level,
+    xp: progressed.xp,
+    totalXp,
     rank: raw.rank ?? "E",
     archetype,
     playDifficulty: normalizePlayDifficulty(raw.playDifficulty),
@@ -124,6 +131,8 @@ export function migrateHabit(raw: Habit): Habit {
   return {
     ...raw,
     kind,
+    xpReward: clampQuestXp(raw.xpReward),
+    target: Math.max(1, Math.floor(Number(raw.target) || 1)),
     statRewards: normalizeStatRewards(raw.statRewards),
     active: raw.active !== false,
     archived: Boolean(raw.archived),
@@ -154,5 +163,7 @@ export function needsMigration(state: GameState | null | undefined): boolean {
   if ((state.schemaVersion ?? 1) < SCHEMA_VERSION) return true;
   if (!state.player.experienceLevel) return true;
   if (state.player.stats.energy == null) return true;
+  if (state.player.xp > xpRequired(state.player.level)) return true;
+  if (state.habits.some((h) => (h.xpReward ?? 0) > MAX_QUEST_XP)) return true;
   return false;
 }

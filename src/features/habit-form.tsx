@@ -7,7 +7,7 @@ import { SystemFrame } from "@/components/system/frame";
 import { HABIT_TEMPLATES } from "@/lib/game/templates";
 import { CATEGORY_LABELS, DIFFICULTY_LABELS, PRIORITY_LABELS, QUEST_KIND_LABELS, STAT_LABELS } from "@/lib/i18n/catalog";
 import { makeHabit } from "@/lib/habits";
-import { difficultyXpBase } from "@/lib/game/progression";
+import { clampQuestXp, clampStatReward, difficultyXpBase, MAX_QUEST_XP, MAX_STAT_REWARD } from "@/lib/game/progression";
 
 const TYPES: HabitType[] = ["binary", "numeric", "duration", "counter", "negative"];
 const KINDS: QuestKind[] = ["daily", "weekly", "side", "challenge", "mission"];
@@ -42,8 +42,8 @@ export function HabitForm({
         ...draft,
         id: initial?.id,
         name,
-        xpReward: Number(draft.xpReward) || difficultyXpBase(difficulty),
-        target: Number(draft.target) || 1,
+        xpReward: clampQuestXp(Number(draft.xpReward) || difficultyXpBase(difficulty)),
+        target: Math.max(1, Math.floor(Number(draft.target) || 1)),
         createdAt: initial?.createdAt,
       }),
     );
@@ -145,7 +145,17 @@ export function HabitForm({
           </div>
           <div>
             <FieldLabel htmlFor="xp">XP reward</FieldLabel>
-            <Input id="xp" className="mt-2" type="number" min={1} value={draft.xpReward ?? 45} onChange={(e) => set("xpReward", Number(e.target.value))} />
+            <Input
+              id="xp"
+              className="mt-2"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={MAX_QUEST_XP}
+              value={draft.xpReward ?? 45}
+              onChange={(e) => set("xpReward", clampQuestXp(e.target.value))}
+            />
+            <p className="mt-1 text-[11px] text-subtle">1–{MAX_QUEST_XP}. Difficulty sets the default.</p>
           </div>
           <div>
             <FieldLabel htmlFor="target">Goal</FieldLabel>
@@ -168,10 +178,12 @@ export function HabitForm({
               <Input
                 className="h-9 w-16"
                 type="number"
+                inputMode="numeric"
                 min={0}
+                max={MAX_STAT_REWARD}
                 value={draft.statRewards?.[key] ?? 0}
                 onChange={(e) =>
-                  set("statRewards", { ...draft.statRewards, [key]: Number(e.target.value) || 0 })
+                  set("statRewards", { ...draft.statRewards, [key]: clampStatReward(e.target.value) })
                 }
               />
             </label>

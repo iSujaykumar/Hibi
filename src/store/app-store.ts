@@ -25,7 +25,7 @@ import {
   upsertRoutine,
   useStreakShield,
 } from "@/lib/game/engine";
-import { difficultyXpBase } from "@/lib/game/progression";
+import { clampQuestXp, difficultyXpBase } from "@/lib/game/progression";
 import { generateProtocol } from "@/lib/game/protocol";
 import { localDateId } from "@/lib/game/dates";
 import { uid } from "@/lib/utils";
@@ -199,7 +199,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!current) return;
     const next = upsertHabit(current, {
       ...habit,
-      xpReward: habit.xpReward || difficultyXpBase(habit.difficulty),
+      xpReward: clampQuestXp(habit.xpReward || difficultyXpBase(habit.difficulty)),
       updatedAt: new Date().toISOString(),
     });
     set({ state: next });

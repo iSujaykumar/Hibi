@@ -18,6 +18,7 @@ import {
   computeXpAward,
   dailyRating,
   difficultyXpBase,
+  maxTotalXp,
   mergeStats,
   nextRankRequirement,
   progressFromTotalXp,
@@ -44,8 +45,8 @@ function cloneState(state: GameState): GameState {
 function addXp(player: Player, amount: number, events: EngineEvent[]): Player {
   if (amount <= 0) return player;
   const before = player.level;
-  const totalXp = player.totalXp + amount;
-  const { level, xp, needed: _needed } = progressFromTotalXp(totalXp);
+  const totalXp = Math.min(maxTotalXp(), player.totalXp + amount);
+  const { level, xp } = progressFromTotalXp(totalXp);
   let stats = { ...player.stats };
   let unspent = player.unspentStatPoints;
   for (let lvl = before + 1; lvl <= level; lvl += 1) {
