@@ -152,13 +152,16 @@ export function stripInstallParams(url) {
 }
 
 export function renderInstallPageHtml(template, { host, url } = {}) {
+  const site = readOgSite();
+  const name = String(site.title ?? "").trim() || appNameFromHost(host);
   return String(template)
-    .replaceAll("{{APP_NAME}}", escapeHtml(appNameFromHost(host)))
+    .replaceAll("{{APP_NAME}}", escapeHtml(name))
     .replaceAll("{{APP_URL}}", escapeHtml(stripInstallParams(url)));
 }
 
 export function renderWebManifest(hostHeader) {
-  const name = appNameFromHost(hostHeader);
+  const site = readOgSite();
+  const name = String(site.title ?? "").trim() || "HIBI";
   return JSON.stringify(
     {
       name,
@@ -167,9 +170,21 @@ export function renderWebManifest(hostHeader) {
       start_url: "/",
       scope: "/",
       display: "standalone",
-      background_color: "#000000",
-      theme_color: "#000000",
+      background_color: "#07080c",
+      theme_color: "#07080c",
       icons: [
+        {
+          src: "/icon-192.png",
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "any",
+        },
+        {
+          src: "/icon-512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any",
+        },
         {
           src: "/__hibi/icon-180.png",
           sizes: "180x180",
@@ -187,7 +202,7 @@ export function hibiPwaHeadTags(appName = DEFAULT_APP_NAME) {
     // Standalone display comes from the manifest ("display": "standalone");
     // the legacy *-web-app-capable metas it replaces are deliberately absent.
     ["manifest", '<link rel="manifest" href="/__hibi/manifest.webmanifest">'],
-    ["apple-touch-icon", '<link rel="apple-touch-icon" href="/__hibi/icon-180.png">'],
+    ["apple-touch-icon", '<link rel="apple-touch-icon" href="/icon-192.png">'],
     [
       "apple-mobile-web-app-title",
       `<meta name="apple-mobile-web-app-title" content="${escapeHtml(appName)}">`,
@@ -437,7 +452,7 @@ export function injectHibiPwaHead(html, ctx = {}) {
   const missing = hibiPwaHeadTags(appName)
     .filter(([key]) => {
       if (key === "manifest") return !next.includes('href="/__hibi/manifest.webmanifest"');
-      if (key === "apple-touch-icon") return !next.includes('href="/__hibi/icon-180.png"');
+      if (key === "apple-touch-icon") return !next.includes('href="/icon-192.png"');
       return !next.includes(`name="${key}"`);
     })
     .map(([, tag]) => tag);
